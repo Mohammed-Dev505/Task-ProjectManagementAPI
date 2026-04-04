@@ -12,7 +12,7 @@ using Test_Api.Data;
 namespace Task_ProjectManagementAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260220154715_InitialCreated")]
+    [Migration("20260325044814_InitialCreated")]
     partial class InitialCreated
     {
         /// <inheritdoc />

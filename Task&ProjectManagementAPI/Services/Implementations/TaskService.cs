@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System;
+using Task_ProjectManagementAPI.Exceptions;
 using Task_ProjectManagementAPI.Services.Interfaces;
 using Test_Api.Data;
 using Test_Api.Data.Models;
@@ -24,7 +24,7 @@ namespace Task_ProjectManagementAPI.Services.Implementations
             .SingleOrDefaultAsync(p => p.Id == dto.ProjectId && p.CreatedByUserId == userId);
 
             if (project == null)
-                throw new UnauthorizedAccessException();
+                throw new NotFoundException($"Project with ID {dto.ProjectId} not found");
 
             var task = _mapper.Map<TaskItem>(dto);
             task.CreatedByUserId = userId;
@@ -41,7 +41,7 @@ namespace Task_ProjectManagementAPI.Services.Implementations
              .Include(t => t.Project)
              .SingleOrDefaultAsync(t => t.Id == taskId && t.Project.CreatedByUserId == userId);
 
-            if (task == null) return false;
+            if (task == null) throw new NotFoundException($"Task with ID {taskId} not found");
 
             _context.TaskItems.Remove(task);
             await _context.SaveChangesAsync();
@@ -53,14 +53,16 @@ namespace Task_ProjectManagementAPI.Services.Implementations
             var task = await _context.TaskItems.AsNoTracking()
             .Include(t => t.Project).Include(a => a.CreatedByUser)
             .SingleOrDefaultAsync(t => t.Id == taskId && t.Project.CreatedByUserId == userId);
-
-            return task == null ? null : _mapper.Map<TaskDto>(task);
+            if (task == null) throw new NotFoundException($"Task with ID {taskId} not found");
+            return _mapper.Map<TaskDto>(task);
         }
 
         public async Task<IEnumerable<TaskDto>> GetByProjectAsync(int projectId, string userId)
         {
+            var project = await _context.Projects.AsNoTracking().SingleOrDefaultAsync(p => p.Id == projectId && p.CreatedByUserId == userId);
+            if (project == null) throw new NotFoundException($"Project with ID{projectId} not found");
             var tasks = await _context.TaskItems
-          .Include(t => t.Project)
+          .Include(t => t.Project).ThenInclude(p => p.CreatedByUser)
           .Where(t => t.ProjectId == projectId && t.Project.CreatedByUserId == userId)
           .ToListAsync();
 
@@ -73,7 +75,7 @@ namespace Task_ProjectManagementAPI.Services.Implementations
            .Include(t => t.Project)
            .SingleOrDefaultAsync(t => t.Id == dto.Id && t.Project.CreatedByUserId == userId);
 
-            if (task == null) return false;
+            if (task == null) throw new NotFoundException($"Task with ID {dto.Id} not found");
 
             task.Title = dto.Title;
             task.Description = dto.Description;
@@ -91,7 +93,7 @@ namespace Task_ProjectManagementAPI.Services.Implementations
           .Include(t => t.Project)
           .SingleOrDefaultAsync(t => t.Id == dto.Id && t.Project.CreatedByUserId == userId);
 
-            if (task == null) return false;
+            if (task == null) throw new NotFoundException($"Task with ID {dto.Id} not found");
 
             task.Status = dto.Status;
             task.UpdatedAt = DateTime.UtcNow;

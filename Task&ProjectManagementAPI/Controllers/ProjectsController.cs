@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using Task_ProjectManagementAPI.Services.Interfaces;
 using Test_Api.DTOs;
 
 namespace Task_ProjectManagementAPI.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ProjectsController : ControllerBase
@@ -13,42 +16,41 @@ namespace Task_ProjectManagementAPI.Controllers
         public ProjectsController(IProjectService projectService) => _projectService = projectService;
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] string userId)
+        public async Task<IActionResult> GetAll()
         {
-            var projects = await _projectService.GetAllAsync(userId);
-            return Ok(projects);
+            var userId = User.FindFirstValue("uid");
+            return Ok(await _projectService.GetAllAsync(userId));
         }
 
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetById(int id, [FromQuery] string userId)
+        public async Task<IActionResult> GetById(int id)
         {
-            var project = await _projectService.GetByIdAsync(id, userId);
-            if (project == null) return NotFound();
-            return Ok(project);
+            var userId = User.FindFirstValue("uid");
+            return Ok(await _projectService.GetByIdAsync(id, userId));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromQuery] string userId, [FromBody] CreateProjectDto dto)
+        public async Task<IActionResult> Create( [FromBody] CreateProjectDto dto)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            var userId = User.FindFirstValue("uid");
             var project = await _projectService.CreateAsync(dto, userId);
             return CreatedAtAction(nameof(GetById), new {id = project.Id, userId }, project);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromQuery] string userId, [FromBody] UpdateProjectDto dto)
+        public async Task<IActionResult> Update(int id ,  [FromBody] UpdateProjectDto dto)
         {
-            if (id != dto.Id) return BadRequest("Id is not match");
-            var update = await _projectService.UpdateAsync(dto, userId);
-            if (!update) return NotFound();
+            if (id != dto.Id) throw new BadHttpRequestException($"Id mismatch");
+            var userId = User.FindFirstValue("uid");
+            await _projectService.UpdateAsync(dto, userId);
             return NoContent();
         }
 
         [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete(int id, [FromQuery] string userId)
+        public async Task<IActionResult> Delete(int id)
         {
-            var deleted = await _projectService.DeleteAsync(id, userId);
-            if (!deleted) return NotFound();
+            var userId = User.FindFirstValue("uid");
+            await _projectService.DeleteAsync(id,userId);
             return NoContent();
         }
     }

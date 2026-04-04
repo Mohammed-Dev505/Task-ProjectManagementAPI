@@ -362,3 +362,4 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /Task&ProjectManagementAPI/appsettings.json
+/Task&ProjectManagementAPI/Controllers/AccoutsController.cs

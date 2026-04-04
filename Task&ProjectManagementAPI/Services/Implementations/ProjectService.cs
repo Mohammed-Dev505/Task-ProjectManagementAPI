@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using System;
+using Task_ProjectManagementAPI.Exceptions;
 using Task_ProjectManagementAPI.Services.Interfaces;
 using Test_Api.Data;
 using Test_Api.Data.Models;
@@ -20,6 +21,8 @@ namespace Task_ProjectManagementAPI.Services.Implementations
 
         public async Task<ProjectDto> CreateAsync(CreateProjectDto dto, string userId)
         {
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new BadRequestException($"Project name is required");
             var project = _mapper.Map<Project>(dto);
             project.CreatedByUserId = userId;
 
@@ -34,7 +37,7 @@ namespace Task_ProjectManagementAPI.Services.Implementations
             var project = await _context.Projects
              .SingleOrDefaultAsync(p => p.Id == projectId && p.CreatedByUserId == userId);
 
-            if (project == null) return false;
+            if (project == null) throw new NotFoundException($"Poject with ID {projectId} not found");
 
             _context.Projects.Remove(project);
             await _context.SaveChangesAsync();
@@ -54,8 +57,8 @@ namespace Task_ProjectManagementAPI.Services.Implementations
         {
             var project = await _context.Projects.AsNoTracking()
              .SingleOrDefaultAsync(p => p.Id == projectId && p.CreatedByUserId == userId);
-
-            return project == null ? null : _mapper.Map<ProjectDto>(project);
+            if(project == null) throw new NotFoundException($"Project with ID {projectId} not found");
+            return _mapper.Map<ProjectDto>(project);
         }
 
         public async Task<bool> UpdateAsync(UpdateProjectDto dto, string userId)
@@ -63,7 +66,7 @@ namespace Task_ProjectManagementAPI.Services.Implementations
             var project = await _context.Projects
             .SingleOrDefaultAsync(p => p.Id == dto.Id && p.CreatedByUserId == userId);
 
-            if (project == null) return false;
+            if (project == null) throw new NotFoundException($"Project with ID {dto.Id} not found");
 
             project.Name = dto.Name;
             project.Description = dto.Description;
