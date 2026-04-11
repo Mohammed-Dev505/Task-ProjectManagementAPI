@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using System;
+using Task_ProjectManagementAPI.Data.Models;
 using Task_ProjectManagementAPI.Exceptions;
+using Task_ProjectManagementAPI.Extensions;
 using Task_ProjectManagementAPI.Services.Interfaces;
 using Test_Api.Data;
 using Test_Api.Data.Models;
@@ -44,13 +46,22 @@ namespace Task_ProjectManagementAPI.Services.Implementations
             return true;
         }
 
-        public async Task<IEnumerable<ProjectDto>> GetAllAsync(string userId)
+        public async Task<PagedResult<ProjectDto>> GetAllAsync(string userId , ProjectParams parameters)
         {
-            var projects = await _context.Projects.AsNoTracking()
-             .Where(p => p.CreatedByUserId == userId)
-             .ToListAsync();
-
-            return _mapper.Map<IEnumerable<ProjectDto>>(projects);
+            var query =_context.Projects.AsNoTracking().Where(p => p.CreatedByUserId == userId).AsQueryable();
+            if (!string.IsNullOrEmpty(parameters.Search))
+                query = query.Where(p => p.Name.Contains(parameters.Search));
+            if (!string.IsNullOrEmpty(parameters.Status) && Enum.TryParse<ProjectStatus>(parameters.Status, out var status))
+                query = query.Where(p => p.Status == status);
+            var paged = await query.ToPagedResultAsync(parameters.PageNumber, parameters.PageSize);
+            return new PagedResult<ProjectDto>
+            {
+                Data = _mapper.Map<IEnumerable<ProjectDto>>(paged.Data),
+                PageNumber = paged.PageNumber,
+                PageSize = paged.PageSize,
+                TotalCount = paged.TotalCount,
+                TotalPages = paged.TotalPages,
+            };
         }
 
         public async Task<ProjectDto?> GetByIdAsync(int projectId, string userId)

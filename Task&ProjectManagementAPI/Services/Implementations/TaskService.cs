@@ -1,11 +1,12 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Task_ProjectManagementAPI.Data.Models;
 using Task_ProjectManagementAPI.Exceptions;
+using Task_ProjectManagementAPI.Extensions;
 using Task_ProjectManagementAPI.Services.Interfaces;
 using Test_Api.Data;
 using Test_Api.Data.Models;
 using Test_Api.DTOs;
-
 namespace Task_ProjectManagementAPI.Services.Implementations
 {
     public class TaskService : ITaskService
@@ -57,16 +58,32 @@ namespace Task_ProjectManagementAPI.Services.Implementations
             return _mapper.Map<TaskDto>(task);
         }
 
-        public async Task<IEnumerable<TaskDto>> GetByProjectAsync(int projectId, string userId)
+        public async Task<PagedResult<TaskDto>> GetByProjectAsync(int projectId, string userId, TaskParams parameters)
         {
             var project = await _context.Projects.AsNoTracking().SingleOrDefaultAsync(p => p.Id == projectId && p.CreatedByUserId == userId);
-            if (project == null) throw new NotFoundException($"Project with ID{projectId} not found");
-            var tasks = await _context.TaskItems
-          .Include(t => t.Project).ThenInclude(p => p.CreatedByUser)
-          .Where(t => t.ProjectId == projectId && t.Project.CreatedByUserId == userId)
-          .ToListAsync();
+            if (project == null)
+                throw new NotFoundException($"Project with ID {projectId} not found");
+            var query = _context.TaskItems.AsNoTracking().Include(t => t.Project).Where(t => t.ProjectId == projectId).AsQueryable();
 
-            return _mapper.Map<IEnumerable<TaskDto>>(tasks);
+            if (!string.IsNullOrEmpty(parameters.Search))
+                query = query.Where(t => t.Title.Contains(parameters.Search));
+
+            if (!string.IsNullOrEmpty(parameters.Status) && Enum.TryParse<Test_Api.Data.Models.TaskStatus>(parameters.Status, out var status))
+                query = query.Where(t => t.Status == status);
+
+            if (!string.IsNullOrEmpty(parameters.Priority) && Enum.TryParse<TaskPriority>(parameters.Priority, out var priority))
+                query = query.Where(t => t.Priority == priority);
+
+            var paged = await query.ToPagedResultAsync(parameters.PageNumber, parameters.PageSize);
+
+            return new PagedResult<TaskDto>
+            {
+                Data = _mapper.Map<IEnumerable<TaskDto>>(paged),
+                PageNumber = paged.PageNumber,
+                PageSize = paged.PageSize,
+                TotalCount = paged.TotalCount,
+                TotalPages = paged.TotalPages
+            };
         }
 
         public async Task<bool> UpdateAsync(UpdateTaskDto dto, string userId)

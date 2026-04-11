@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Task_ProjectManagementAPI.Data.Models;
 using Task_ProjectManagementAPI.Services.Interfaces;
 using Test_Api.DTOs;
 
@@ -16,10 +17,10 @@ namespace Task_ProjectManagementAPI.Controllers
         public ProjectsController(IProjectService projectService) => _projectService = projectService;
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] ProjectParams parameters)
         {
             var userId = User.FindFirstValue("uid");
-            return Ok(await _projectService.GetAllAsync(userId));
+            return Ok(await _projectService.GetAllAsync(userId, parameters));
         }
 
         [HttpGet("{id:int}")]
