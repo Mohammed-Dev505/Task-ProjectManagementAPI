@@ -18,8 +18,6 @@ namespace Task_ProjectManagementAPI.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterModel model)
         {
-            if(!ModelState.IsValid) 
-                return BadRequest(ModelState);
             var result = await _authService.RegisterAsync(model);
             if (!result.IsAuthenticted)
                 return BadRequest(result.Message);
@@ -28,8 +26,6 @@ namespace Task_ProjectManagementAPI.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(TokenRequestModel model)
         {
-            if(!ModelState.IsValid)
-                return BadRequest(ModelState);
             var result = await _authService.GetTokenAsync(model);
             if(!result.IsAuthenticted)
                 return BadRequest(result.Message);
@@ -39,8 +35,6 @@ namespace Task_ProjectManagementAPI.Controllers
         [HttpPost("addrole")]
         public async Task<IActionResult> AddRole(AddRoleModel model)
         {
-            if(!ModelState.IsValid)
-                return BadRequest(ModelState);
             var result = await _authService.AddRoleAsync(model);
             if(!string.IsNullOrEmpty(result))
                 return BadRequest(result);

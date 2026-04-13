@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using Task_ProjectManagementAPI.Data.Models;
 using Task_ProjectManagementAPI.Services.Interfaces;
 using Test_Api.DTOs;
@@ -35,7 +36,7 @@ namespace Task_ProjectManagementAPI.Controllers
         {
             var userId = User.FindFirstValue("uid");
             var project = await _projectService.CreateAsync(dto, userId);
-            return CreatedAtAction(nameof(GetById), new {id = project.Id, userId }, project);
+            return CreatedAtAction(nameof(GetById), new { id = project.Id, userId }, project);
         }
 
         [HttpPut("{id:int}")]

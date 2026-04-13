@@ -14,12 +14,19 @@ using Task_ProjectManagementAPI.Services.Interfaces;
 using Test_Api.Data;
 using Test_Api.Data.Models;
 using Test_Api.Mapping;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Task_ProjectManagementAPI.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
+
+// Add FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateProjectValidator>();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -48,6 +55,7 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+
 
 builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
 
@@ -89,6 +97,8 @@ builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddTransient<ExceptionMiddleware>();
+
+
 
 
 var app = builder.Build();
