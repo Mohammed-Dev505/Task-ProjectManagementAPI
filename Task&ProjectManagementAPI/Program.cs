@@ -1,22 +1,7 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using System.Text;
 using Task_ProjectManagementAPI.Data.Models;
-using Task_ProjectManagementAPI.Exceptions;
-using Task_ProjectManagementAPI.Middleware;
-using Task_ProjectManagementAPI.Services.Implementations;
-using Task_ProjectManagementAPI.Services.Interfaces;
-using Test_Api.Data;
-using Test_Api.Data.Models;
 using Test_Api.Mapping;
-using FluentValidation;
-using FluentValidation.AspNetCore;
-using Task_ProjectManagementAPI.Validators;
+using Task_ProjectManagementAPI.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,79 +9,30 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Add FluentValidation
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddValidatorsFromAssemblyContaining<CreateProjectValidator>();
+builder.Services.AddValidationServices();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter:Bearer {token}"
-    });
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
-        }
-    });
-});
+builder.Services.AddSwaggerService();
 
 
-builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
 
 
 // Add DbContext 
-builder.Services.AddDbContext<AppDbContext>(op =>
-op.UseSqlServer(builder.Configuration.GetConnectionString("DbContext")));
+builder.Services.AddDatabase(builder.Configuration);
 
 // Add Mapping
 builder.Services.AddAutoMapper(typeof(UserProfile));
 
 // Add Identity
-builder.Services.AddIdentity<User, IdentityRole>().AddEntityFrameworkStores<AppDbContext>();
+builder.Services.AddIdentityServices();
 
 // Add Authentication
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    var jwtsettings = builder.Configuration.GetSection("JWT");
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtsettings["Issuer"],
-        ValidAudience = jwtsettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtsettings["Key"]))
-    };
-});
-
+builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // Add Interface Service
-builder.Services.AddScoped<ITaskService, TaskService>();
-builder.Services.AddScoped<IProjectService, ProjectService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddTransient<ExceptionMiddleware>();
+builder.Services.AddApplicationServices();
 
 
 
@@ -125,13 +61,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseMiddleware<ExceptionMiddleware>();
+app.UseGlobalException();
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
-
-app.UseAuthorization();
+app.UseSecutiry();
 
 app.MapControllers();
 

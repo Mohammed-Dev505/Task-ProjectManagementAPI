@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Reflection.Emit;
 using Test_Api.Data.Models;
+using Test_Api.DTOs;
 
 namespace Test_Api.Data
 {
@@ -18,6 +19,12 @@ namespace Test_Api.Data
                 .WithMany(p => p.Tasks)
                 .HasForeignKey(t => t.ProjectId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<TaskItem>()
+                .Property(s => s.Status).HasConversion<string>();
+            modelBuilder.Entity<TaskItem>()
+                .Property(p => p.Priority).HasConversion<string>(); 
+
+
 
             // Project -> User
             modelBuilder.Entity<Project>()

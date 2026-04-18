@@ -63,7 +63,7 @@ namespace Task_ProjectManagementAPI.Services.Implementations
             var project = await _context.Projects.AsNoTracking().SingleOrDefaultAsync(p => p.Id == projectId && p.CreatedByUserId == userId);
             if (project == null)
                 throw new NotFoundException($"Project with ID {projectId} not found");
-            var query = _context.TaskItems.AsNoTracking().Include(t => t.Project).Where(t => t.ProjectId == projectId).AsQueryable();
+            var query = _context.TaskItems.AsNoTracking().Include(t => t.Project).Include(c => c.CreatedByUser).Where(t => t.ProjectId == projectId).AsQueryable();
 
             if (!string.IsNullOrEmpty(parameters.Search))
                 query = query.Where(t => t.Title.Contains(parameters.Search));
@@ -78,7 +78,7 @@ namespace Task_ProjectManagementAPI.Services.Implementations
 
             return new PagedResult<TaskDto>
             {
-                Data = _mapper.Map<IEnumerable<TaskDto>>(paged),
+                Data = _mapper.Map<IEnumerable<TaskDto>>(paged.Data),
                 PageNumber = paged.PageNumber,
                 PageSize = paged.PageSize,
                 TotalCount = paged.TotalCount,
